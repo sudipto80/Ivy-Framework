@@ -23,7 +23,27 @@ public class ColorDemo : ViewBase
 }
 ```
 
+### Using the Non-Generic Constructor
+
+For convenience, you can create a ColorInput without specifying the generic type, which defaults to `string`:
+
+```csharp
+// Using the non-generic constructor (defaults to string)
+var colorInput = new ColorInput();
+
+// With placeholder
+var colorInputWithPlaceholder = new ColorInput("Choose a color");
+
+// With all options
+var colorInputFull = new ColorInput(
+    placeholder: "Select your favorite color",
+    disabled: false,
+    variant: ColorInputVariant.TextAndPicker
+);
+```
+
 ## Variants
+
 
 `ColorInput` has three variants. `ColorInputVariant.Text` variant should be used to let users enter color hex codes
 manually. `ColorInputVariant.TextAndPicker` variant should be used in most cases as it allows users to 
@@ -65,6 +85,7 @@ public class ColorDemo : ViewBase
 ```
 
 
+
 ## Event Handling
 
 ColorInput can handle change events using the `onChange` parameter. 
@@ -74,6 +95,7 @@ block so that
 ```csharp demo-below
 public class ColorChangedDemo : ViewBase
 {
+
     public override object? Build()
     {    
         var colorState = this.UseState("#ff0000");
@@ -94,6 +116,7 @@ public class ColorChangedDemo : ViewBase
     }    
 }    
 ```
+
 
 ## Styling
 
