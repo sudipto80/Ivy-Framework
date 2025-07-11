@@ -132,7 +132,7 @@ public class DisabledColorInput : ViewBase
     public override object? Build()
     {    
         return Layout.Vertical()
-                | new ColorInput<string>(value:"#ff0000")
+                | new ColorInput<string>("#ff0000")
                         .Disabled();
     }
 }    
@@ -149,7 +149,7 @@ public class InvalidStyleDemo : ViewBase
     public override object? Build()
     {    
         return Layout.Vertical()
-                | new ColorInput<string>(value:"#ff0000")
+                | new ColorInput<string>("#ff0000")
                         .Invalid("This is not used now");
     }
 }
