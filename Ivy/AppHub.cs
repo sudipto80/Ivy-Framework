@@ -39,10 +39,8 @@ public class AppHub(
         return chrome;
     }
 
-    public static (string AppId, string? NavigationAppId) GetAppId(Server server, HttpContext httpContext)
+    public static (string? AppId, string? NavigationAppId) GetAppId(Server server, HttpContext httpContext, bool chrome)
     {
-        bool chrome = GetChromeParam(httpContext);
-
         string? appId = null;
         string? navigationAppId = null;
 
@@ -54,19 +52,17 @@ public class AppHub(
                 id = null;
             }
 
-            if (chrome)
+            if (id == server.AppRepository.GetAppOrDefault(id).Id)
             {
-                navigationAppId = id;
+                if (chrome)
+                {
+                    navigationAppId = id;
+                }
+                else
+                {
+                    appId = id;
+                }
             }
-            else
-            {
-                appId = id;
-            }
-        }
-
-        if (string.IsNullOrEmpty(appId))
-        {
-            appId = server.DefaultAppId ?? server.AppRepository.GetAppOrDefault(null).Id;
         }
 
         return (appId, navigationAppId);
@@ -111,7 +107,10 @@ public class AppHub(
             var appServices = new ServiceCollection();
 
             var httpContext = Context.GetHttpContext()!;
-            var (appId, navigationAppId) = GetAppId(server, httpContext);
+
+            var chrome = GetChromeParam(httpContext);
+            var parentId = GetParentId(httpContext);
+            var (appId, navigationAppId) = GetAppId(server, httpContext, chrome);
 
             var clientProvider = new ClientProvider(new ClientSender(clientNotifier, Context.ConnectionId));
 
@@ -168,15 +167,38 @@ public class AppHub(
                     authToken = null;
                 }
 
-                if (authToken != oldAuthToken)
+                if (authToken != oldAuthToken || parentId != null)
                 {
-                    clientProvider.SetAuthToken(authToken, reloadPage: false);
+                    clientProvider.SetAuthToken(authToken, reloadPage: parentId != null && authToken == null);
                 }
 
                 if (authToken == null)
                 {
                     appId = AppIds.Auth;
                 }
+            }
+
+            if (string.IsNullOrEmpty(appId))
+            {
+                appId = server.DefaultAppId ?? server.AppRepository.GetAppOrDefault(null).Id;
+                var chromeApp = server.AppRepository.GetAppOrDefault(AppIds.Chrome);
+                if (chromeApp?.Id == AppIds.Chrome)
+                {
+                    string? chromeDefaultAppId = null;
+                    if (chromeApp.CreateApp() is DefaultSidebarChrome chromeView)
+                    {
+                        chromeDefaultAppId = chromeView.Settings.DefaultAppId;
+                    }
+                    if (appId == AppIds.Chrome && (parentId != null || !chrome))
+                    {
+                        appId = chromeDefaultAppId;
+                    }
+                    else if (chrome && navigationAppId == null)
+                    {
+                        navigationAppId = chromeDefaultAppId;
+                    }
+                }
+                appId = server.AppRepository.GetAppOrDefault(appId).Id;
             }
 
             var appArgs = GetAppArgs(Context.ConnectionId, appId, navigationAppId, httpContext);
@@ -196,8 +218,6 @@ public class AppHub(
 
             var widgetTree = new WidgetTree(app, contentBuilder, serviceProvider);
 
-            var parentId = GetParentId(httpContext);
-
             var appState = new AppSession
             {
                 AppId = appId,
@@ -215,10 +235,14 @@ public class AppHub(
             var connectionAborted = Context.ConnectionAborted;
             appState.EventQueue = new EventDispatchQueue(connectionAborted);
 
-            if (appId != AppIds.Chrome && parentId == null)
+            if (parentId == null)
             {
-                var navigateArgs = new NavigateArgs(appId, Chrome: GetChromeParam(httpContext));
-                clientProvider.Redirect(navigateArgs.GetUrl(), replaceHistory: true);
+                clientProvider.SetRootAppId(appId);
+                if (appId != AppIds.Chrome)
+                {
+                    var navigateArgs = new NavigateArgs(appId, Chrome: chrome);
+                    clientProvider.Redirect(navigateArgs.GetUrl(), replaceHistory: true);
+                }
             }
 
             void OnWidgetTreeChanged(WidgetTreeChanged[] changes)
