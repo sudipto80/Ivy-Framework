@@ -239,7 +239,8 @@ public class AdvancedChatDemo : ViewBase
                     new TableRow(new TableCell("Name"), new TableCell("Age"), new TableCell("Role")).IsHeader(),
                     new TableRow(new TableCell("John Doe"), new TableCell("30"), new TableCell("Developer")),
                     new TableRow(new TableCell("Jane Smith"), new TableCell("25"), new TableCell("Designer"))
-                ),
+                ) //Using Squirrel under the hood!
+                  .SortBy("Age"),
                 
                 _ => $"You said: '{@event.Value}'. Try the commands: 'analyze code', 'create form', 'show chart', or 'table data'!"
             };
